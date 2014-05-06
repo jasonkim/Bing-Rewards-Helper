@@ -1,0 +1,31 @@
+{
+  "name": "Bing Rewards Helper",
+  "version": "1.7.2",
+  "description": "Rack up Bing Rewards points.",
+  "icons": {
+    "16": "16.png",
+    "48": "48.png",
+    "128": "128.png"
+   },
+  "page_action": {
+    "default_icon": {
+      "19": "19.png",
+      "38": "38.png"
+      },
+    "default_title": "Bing Rewards Helper"
+  },
+  "background": {
+    "scripts": [ "background.js" ],
+    "persistent": false
+  },
+  "permissions": [
+    "webNavigation",
+    "tabs",
+    "http://*.bing.com/*",
+    "http://en.wikipedia.org/*"
+  ],
+  "web_accessible_resources": [
+    "spinner.svg"
+  ],
+  "manifest_version": 2
+}

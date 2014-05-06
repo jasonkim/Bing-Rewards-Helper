@@ -1,0 +1,28 @@
+/* Fill the entire page */
+html {
+	height: 100%;
+}
+
+/* Create the overlay */
+div.overlay {
+	background: -webkit-gradient(linear, left top, left bottom, from(rgba(38, 47, 50, 0.9)), to(rgba(114, 142, 170, 0.9)));
+	text-align: center;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 9999;
+}
+
+/* Create the spinner */
+div .spinner {
+	position: absolute;
+	display: inline-block;
+	top: 50%;
+	left: 50%;
+	margin-top: -100px;
+	margin-left: -100px;
+}
