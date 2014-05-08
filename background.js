@@ -22,7 +22,7 @@ chrome.pageAction.onClicked.addListener(function(tab) {
 						var searchParams = json.Communications[i].Message.description.match(/\d+/g);
 						var totalSearches = searchParams[1] * searchParams[2];
 						var terms = [];
-						for (var j = 1; j <= Math.ceil(totalSearches/10); j++) {
+						for (var j = 1; j <= Math.ceil(totalSearches / 10); j++) {
 							// Get a list of search terms
 							var xhr = new XMLHttpRequest();
 							xhr.open("GET", "http://en.wikipedia.org/w/api.php?format=json&action=query&list=random&rnlimit=10&rnnamespace=0", false);
@@ -33,12 +33,38 @@ chrome.pageAction.onClicked.addListener(function(tab) {
 							}
 							xhr.send();
 						}
-						for (var l in terms) {
-							// Search away; use HEAD to reduce server bandwidth/speed up searching
+
+						// Check if is a mobile search
+						var mobile = false;
+						if (json.Communications[i].CommunicationId == "mobsrch01") {
+							mobile = true;
+							// Set mobile User-Agent
+							chrome.declarativeWebRequest.onRequest.addRules([{
+								conditions: [
+									new chrome.declarativeWebRequest.RequestMatcher({
+										url: {hostSuffix: "bing.com"}
+									})
+								],
+								actions: [
+									new chrome.declarativeWebRequest.SetRequestHeader({
+										name: "User-Agent",
+										value: "Mozilla/5.0 (Linux; Android 4.4.2; Nexus 5 Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.114 Mobile Safari/537.36"
+									})
+								]
+							}]);
+						};
+
+						while (terms.length > 0) {
+							// Search away
 							var xhr = new XMLHttpRequest();
-							xhr.open("HEAD", "http://www.bing.com/search?q=" + terms[l] + "&go=Submit&qs=ds&form=QBRE", false);
+							xhr.open("GET", "http://www.bing.com/search?q=" + terms.shift(), false);
 							try{xhr.send(null);} catch(e){}
 						}
+						if (mobile) {
+							// Remove mobile User-Agent
+							chrome.declarativeWebRequest.onRequest.removeRules();
+						}
+
 					break;
 					case "urlreward":
 						// Active the other offer links
@@ -50,11 +76,10 @@ chrome.pageAction.onClicked.addListener(function(tab) {
 					break;
 				}
 			}
-			
 		}
 	}
 	try{offersXHR.send(null);} catch(e){}
-	
+
 	// Refresh the page to see the new status
 	chrome.tabs.update(tab.id, {"url": tab.url});
 });
