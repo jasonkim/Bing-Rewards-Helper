@@ -20,8 +20,6 @@
   },
   "permissions": [
     "webNavigation",
-    "declarativeWebRequest",
-    "*://*/*",
     "tabs",
     "http://*.bing.com/*",
     "http://en.wikipedia.org/*"
