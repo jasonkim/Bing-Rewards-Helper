@@ -16,15 +16,17 @@
   },
   "background": {
     "scripts": [ "background.js" ],
-    "persistent": false
+    "persistent": true
   },
   "permissions": [
     "webNavigation",
     "declarativeWebRequest",
-    "*://*/*",
+    "webRequest",
+    "webRequestBlocking",
     "tabs",
-    "http://*.bing.com/*",
-    "http://en.wikipedia.org/*"
+    "alarms",
+    "*://*.bing.com/*",
+    "*://en.wikipedia.org/*"
   ],
   "web_accessible_resources": [
     "spinner.svg"
