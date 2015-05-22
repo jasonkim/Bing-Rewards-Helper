@@ -5,7 +5,7 @@ chrome.webNavigation.onCompleted.addListener(function(details) {
 
 chrome.pageAction.onClicked.addListener(function(tab) {
 	perform(tab.id, tab.url);
-	var fireEvery = 60; // minutes
+	var fireEvery = 180; // minutes
 	localStorage["bing_reward_tab_id"] = tab.id
 	localStorage["bing_reward_tab_url"] = tab.url
 	chrome.alarms.create({delayInMinutes: fireEvery, periodInMinutes: fireEvery});
@@ -13,7 +13,7 @@ chrome.pageAction.onClicked.addListener(function(tab) {
 });
 
 chrome.alarms.onAlarm.addListener(function() {
-	console.log("onAlarm fired");
+	console.log("Alarm: " + Date());
 	perform(parseInt(localStorage["bing_reward_tab_id"]), localStorage["bing_reward_tab_url"]);
 });
 
@@ -31,7 +31,6 @@ function getTerms() {
 				terms.push(queries[k].title);
 		}
 		xhr.send();
-		console.log("Got terms");
 	}
 	return terms.pop();
 }
@@ -53,20 +52,41 @@ function urlrewards(comm) {
 }
 
 function search(comm) {
-	console.log("Running search");
 	var searchParams = comm.Message.description.match(/\d+/g);
 	var totalSearches = searchParams[1] * ticketRemaining(comm);
 
 	for (i = 0; i < totalSearches; i++) {
 		// Search away
+		var url = "http://www.bing.com/search?q=" + getTerms();
 		var xhr = new XMLHttpRequest();
-		xhr.open("GET", "http://www.bing.com/search?q=" + getTerms(), false);
+		xhr.open("GET", url, false);
 		try {
 			xhr.send(null);
 		} catch(e) {
 			console.log("Error running search");
 		}
 	}
+}
+
+function searchWithTabs(tab_id, func_done) {
+	var url = "http://www.bing.com/search?q=" + getTerms();
+	chrome.tabs.update(tab_id, {"url": url}, function(tab) {
+		var loadNext = function(tab_id, changedProps) {
+			if (changedProps.status != "complete")
+				return;
+
+			if (decrementTotal() >= 0) {
+				// Load the next one
+				searchWithTabs(tab_id, func_done);
+			}
+			else {
+				func_done();
+			}
+			chrome.tabs.onUpdated.removeListener(loadNext);
+
+		}
+		chrome.tabs.onUpdated.addListener(loadNext);
+	});
 }
 
 function setMobileEnv() {
@@ -82,7 +102,7 @@ function setMobileEnv() {
 			actions: [
 				new chrome.declarativeWebRequest.SetRequestHeader({
 					name: "User-Agent",
-					value: "Mozilla/5.0 (Linux; Android 4.4.2; Nexus 5 Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.114 Mobile Safari/537.36"
+					value: "Mozilla/5.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/600.1.3 (KHTML, like Gecko) Version/8.0 Mobile/12A4345d Safari/600.1.4"
 				})
 			]
 		}]);
@@ -93,12 +113,12 @@ function setMobileEnv() {
 			listener = function (details) {
 			for (var i = 0; i < details.requestHeaders.length; ++i) {
 				if (details.requestHeaders[i].name === 'User-Agent') {
-					details.requestHeaders[i].value = "Mozilla/5.0 (Linux; Android 4.4.2; Nexus 5 Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.114 Mobile Safari/537.36"
+					details.requestHeaders[i].value = "Mozilla/5.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/600.1.3 (KHTML, like Gecko) Version/8.0 Mobile/12A4345d Safari/600.1.4"
 				}
 			}
 			return {requestHeaders: details.requestHeaders};
 			},
-			{urls: ["*://www.bing.com/*"]},
+			{urls: ["*://*.bing.com/*"]},
 			["blocking", "requestHeaders"]
 		);
 		return listener
@@ -116,13 +136,19 @@ function unsetMobileEnv(listener) {
 	}
 }
 
+function setTotal(comm) {
+	var searchParams = comm.Message.description.match(/\d+/g);
+	var totalSearches = searchParams[1] * ticketRemaining(comm);
+	localStorage["bing_reward_mobile_total"] = totalSearches;
+}
+
+function decrementTotal() {
+	var current = parseInt(localStorage["bing_reward_mobile_total"]);
+	localStorage["bing_reward_mobile_total"] = current - 1;
+	return current
+}
+
 function perform(tab_id, tab_url) {
-	// Insert spinner stylesheet
-	chrome.tabs.insertCSS(tab_id, {"file": "spinner.css"});
-
-	// Insert spinner javascript
-	chrome.tabs.executeScript(tab_id, {"file": "spinner.js"});
-
 	// Get current reward offers
 	var offersXHR = new XMLHttpRequest();
 	offersXHR.open("GET", "http://www.bing.com/rewardsapp/getoffers", false);
@@ -136,12 +162,18 @@ function perform(tab_id, tab_url) {
 						case "search":
 							// Check if is a mobile search
 							if (comm.CommunicationId == "mobsrch01") {
+								console.log("Running mobile search");
+								setTotal(comm);
 								var listener = setMobileEnv();
-								search(comm);
-								unsetMobileEnv(listener);
+								var done = function() {
+									unsetMobileEnv(listener);
+									chrome.tabs.update(tab_id, {"url": tab_url});
+								}
+								searchWithTabs(tab_id, done);
 							}
 							else {
-								search(comm);
+								console.log("Running search");
+								search(comm, tab_id);
 							}
 							break;
 						case "urlreward":
