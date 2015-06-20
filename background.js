@@ -32,7 +32,12 @@ function getTerms() {
 		}
 		xhr.send();
 	}
-	return terms.pop();
+	term = terms.pop();
+	if (!term) {
+		throw "Need better terms"
+	}
+
+	return term;
 }
 
 function ticketRemaining(comm) {

@@ -20,7 +20,6 @@
   },
   "permissions": [
     "webNavigation",
-    "declarativeWebRequest",
     "webRequest",
     "webRequestBlocking",
     "tabs",
